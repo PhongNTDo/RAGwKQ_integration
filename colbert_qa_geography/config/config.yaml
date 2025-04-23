@@ -1,0 +1,31 @@
+model:
+  checkpoint: "colbert-ir/colbertv2.0"
+  query_maxlen: 32
+  doc_maxlen: 180
+  embedding_dim: 128
+
+data:
+  raw_input_dir: "colbert_qa_geography/data/database_wikipedia"
+  processed_passage_path: "data/processed/wiki_passages.jsonl"
+  passage_max_words: 150
+  passage_overlap_words: 30
+
+indexing:
+  index_save_path: "data/index/wikipedia_colbert.faiss"
+  embedding_save_path: "data/index/doc_embedding.npy"
+  passage_map_save_path: "data/index/passage_map.json" # passage_id -> text
+  embedding_map_save_path: "data/index/embedding_to_passage_map.pkl" # embedding_idx -> passage_id
+
+  faiss_nlist: 1024
+  faiss_m: 16
+  faiss_nbits: 8
+
+  faiss_train_sample_size: 200000
+  batch_size: 64
+
+retrieval:
+  faiss_nprobe: 16
+  candidate_k: 1000
+  top_n: 10
+
+device: "cuda"
