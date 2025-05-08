@@ -5,13 +5,13 @@ import numpy as np
 import os
 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %{levelname}s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def save_jsonl(data, filepath):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, 'w', encoding='utf-8') as f:
         for line in data:
-            json_line = json.dumps(line + "\n")
+            f.write(json.dumps(line) + '\n')
     logging.info(f"Saved {len(data)} lines to {filepath}")
 
 

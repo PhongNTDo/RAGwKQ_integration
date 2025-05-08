@@ -53,4 +53,21 @@ if __name__ == "__main__":
 
     logging.info("Retriever ready. Enter queries (or type 'exit' to quit)")
 
-    
+    # Query loop
+    while True:
+        query = input("Query: ")
+        if query.lower() == "exit":
+            break
+        if not query.strip():
+            continue
+        
+        results = retriever.retrieve(query, candidate_k=ret_config['candidate_k'], top_n=ret_config['top_n'])
+
+        print("\n--- Result ---")
+        if results:
+            for i, res in enumerate(results):
+                print(f"{i+1}. Score: {res['score']:.4f}")
+                print(f"Passage {res['passage_id']}: {res['text']}\n")
+        else:
+            print("No relevant passages found.")
+        print("----------------")

@@ -11,7 +11,7 @@ if __name__ == "__main__":
     data_config = config['data']
 
     passages = process_wikipedia_directory(
-        input_dir=data_config['input_dir'],
+        input_dir=data_config['raw_input_dir'],
         max_words=data_config['passage_max_words'],
         overlap_words=data_config['passage_overlap_words']
     )

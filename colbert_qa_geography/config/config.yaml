@@ -5,7 +5,7 @@ model:
   embedding_dim: 128
 
 data:
-  raw_input_dir: "colbert_qa_geography/data/database_wikipedia"
+  raw_input_dir: "data/database_wikipedia"
   processed_passage_path: "data/processed/wiki_passages.jsonl"
   passage_max_words: 150
   passage_overlap_words: 30
@@ -20,7 +20,7 @@ indexing:
   faiss_m: 16
   faiss_nbits: 8
 
-  faiss_train_sample_size: 200000
+  faiss_train_sample_size: 100000
   batch_size: 64
 
 retrieval:
