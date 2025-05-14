@@ -15,7 +15,7 @@ if __name__ == "__main__":
     idx_config = config["indexing"]
     general_config = config["general"]
 
-    passages = load_jsonl(data_config["passages_path"])
+    passages = load_jsonl(data_config["processed_passage_path"])
     if not passages:
         logging.error("No passages found. Run preprocessing script first.")
         exit()
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     indexer = FaissIndexer(
         dim=model_config['embedding_dim'],
-        nlist=idx_config['nlist'],
+        nlist=idx_config['faiss_nlist'],
         m=idx_config['faiss_m'],
         nbits=idx_config['faiss_nbits']
     )

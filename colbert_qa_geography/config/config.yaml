@@ -28,4 +28,5 @@ retrieval:
   candidate_k: 1000
   top_n: 10
 
-device: "cuda"
+general:
+  device: "cuda"
