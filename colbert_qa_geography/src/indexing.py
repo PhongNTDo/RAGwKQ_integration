@@ -30,40 +30,80 @@ class FaissIndexer:
         else:
             logging.info(f"Faiss index is already trained.")
 
-    def build_index(self, encoder, passages, batch_size, embeddings_save_path, map_save_path):
+    def build_index(self, encoder, passages, batch_size, embeddings_save_path, map_save_path, idx_config=None):
         if not self.is_trained:
             raise RuntimeError("Index must be trained before adding vectors.")
         
-        all_doc_embeddings_list = []
-        self.embedding_id_to_passage_id = []
-        global_embedding_idx = 0
+        # all_doc_embeddings_list = []
+        if idx_config is None:
+            idx_config = {}
+        logging.info("Starting pass 1/2: Counting total number of embeddings...")
+        total_embeddings_count = 0
+        for i in tqdm(range(0, len(passages), batch_size), desc="Pass 1/2: Counting Embeddings"):
+            batch_passages_data = passages[i:i+batch_size]
+            batch_texts = [p['text'] for p in batch_passages_data]
 
-        logging.info(f"Encoding {len(passages)} passages in batches of {batch_size}...")
-        for i in tqdm(range(0, len(passages), batch_size), desc="Encoding Passages"):
-            batch_passages = passages[i:i+batch_size]
-            batch_texts = [p['text'] for p in batch_passages]
-            batch_ids = [p['passage_id'] for p in batch_passages]
+            embs_list_for_count = encoder.encode_passages_batch(batch_texts)
             
-            passage_embeddings_list = encoder.encode_passage_batch(batch_texts)
-
-            for passage_idx, passage_emb_array in enumerate(passage_embeddings_list):
+            for passage_emb_array in embs_list_for_count:
                 if passage_emb_array.shape[0] > 0:
-                    all_doc_embeddings_list.append(passage_emb_array)
-                    num_embeddings_in_passage = passage_emb_array.shape[0]
-                    passage_id = batch_ids[passage_idx]
-                    self.embedding_id_to_passage_id.extend([passage_id] * num_embeddings_in_passage)
-                    global_embedding_idx += num_embeddings_in_passage
+                    total_embeddings_count += passage_emb_array.shape[0]
 
-        if not all_doc_embeddings_list:
+        if total_embeddings_count == 0:
             logging.error("No embeddings were generated. Cannot build index.")
             return
-        
-        all_doc_embeddings = np.concatenate(all_doc_embeddings_list, axis=0).astype('float32')
-        logging.info(f"Total individual token embeedings: {all_doc_embeddings.shape[0]}")
-        save_numpy(all_doc_embeddings, embeddings_save_path)
 
-        logging.info("Adding vectors to Faiss index...")
-        self.index.add(all_doc_embeddings)
+        logging.info(f"Total individual token embeddings to be processed: {total_embeddings_count}")
+
+        logging.info(f"Initializing memap for embeddings at {embeddings_save_path} with shape ({total_embeddings_count},{self.dim})")
+        os.makedirs(os.path.dirname(embeddings_save_path), exist_ok=True)
+        all_doc_embeddings_mmap = np.memmap(embeddings_save_path, dtype='float32', mode='w+', shape=(total_embeddings_count, self.dim))
+
+        logging.info("Starting pass 2/2: Encoding and adding vectors to Faiss index...")
+        self.embedding_id_to_passage_id = []
+        current_mmap_offset = 0
+
+        FAISS_ADD_CHUNK_SIZE_EMBEDDINGS = idx_config['faiss_add_chunk_size_embeddings'] if 'faiss_add_chunk_size_embeddings' in idx_config else 100000
+        embeddings_for_current_faiss_chunk = []
+
+        logging.info(f"Encoding {len(passages)} passages in batches of {batch_size} and building index...")
+        for i in range(0, len(passages), batch_size):
+            batch_passages_data = passages[i:i+batch_size]
+            batch_texts = [p['text'] for p in batch_passages_data]
+            batch_ids = [p['passage_id'] for p in batch_passages_data]
+
+            passage_embeddings_list = encoder.encode_passages_batch(batch_texts)
+
+            for passage_idx, passage_emb_array in enumerate(passage_embeddings_list):
+                num_embeddings_in_passage = passage_emb_array.shape[0]
+                if num_embeddings_in_passage > 0:
+                    passage_emb_array_f32 = passage_emb_array.astype(np.float32)
+                    
+                    all_doc_embeddings_mmap[current_mmap_offset:current_mmap_offset+num_embeddings_in_passage] = passage_emb_array_f32
+                    
+                    embeddings_for_current_faiss_chunk.append(passage_emb_array_f32)
+
+                    passage_id = batch_ids[passage_idx]
+                    self.embedding_id_to_passage_id.extend([passage_id] * num_embeddings_in_passage)
+                    
+                    current_mmap_offset += num_embeddings_in_passage
+
+                    current_faiss_chunk_total_embeddings = sum(e.shape[0] for e in embeddings_for_current_faiss_chunk)
+                    if current_faiss_chunk_total_embeddings >= FAISS_ADD_CHUNK_SIZE_EMBEDDINGS:
+                        concatenated_faiss_chunk = np.concatenate(embeddings_for_current_faiss_chunk, axis=0)
+                        self.index.add(concatenated_faiss_chunk)
+                        embeddings_for_current_faiss_chunk = []
+                        logging.info(f"Add {concatenated_faiss_chunk.shape[0]} embeddings to Faiss. Total in index: {self.index.ntotal}. And progress achieve: {i}/{len(passages) - 1}")
+
+        if embeddings_for_current_faiss_chunk:
+            concatenated_faiss_chunk = np.concatenate(embeddings_for_current_faiss_chunk, axis=0)
+            self.index.add(concatenated_faiss_chunk)
+            logging.info(f"Add final {concatenated_faiss_chunk.shape[0]} embeddings to Faiss. Total in index: {self.index.ntotal}")
+        
+        all_doc_embeddings_mmap.flush()
+        del all_doc_embeddings_mmap
+        logging.info(f"All embeddings saved to {embeddings_save_path}. Total: {current_mmap_offset}")
+        
         logging.info("Faiss index building complete.")
 
         save_pickle(self.embedding_id_to_passage_id, map_save_path)

@@ -1,5 +1,10 @@
+import os
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+
 import yaml
 import numpy as np
+from tqdm import tqdm
 from src.encoding import ColBERTEncoder
 from src.indexing import FaissIndexer
 from src.utils import load_jsonl, logging, load_numpy
@@ -41,7 +46,7 @@ if __name__ == "__main__":
     sample_texts = [p['text'] for p in sample_passages]
 
     training_embeddings_list = []
-    for i in range(0, len(sample_texts), idx_config['batch_size']):
+    for i in tqdm(range(0, len(sample_texts), idx_config['batch_size'])):
         batch_texts = sample_texts[i:i+idx_config['batch_size']]
         batch_embeddings = encoder.encode_passages_batch(batch_texts)
         for emb_array in batch_embeddings:
@@ -59,8 +64,9 @@ if __name__ == "__main__":
         encoder=encoder,
         passages=passages,
         batch_size=idx_config['batch_size'],
-        embeddings_save_path=idx_config['embeddings_save_path'],
-        map_save_path=idx_config['map_save_path']
+        embeddings_save_path=idx_config['embedding_save_path'],
+        map_save_path=idx_config['embedding_map_save_path'],
+        idx_config=idx_config
     )
 
     indexer.save_index(idx_config['index_save_path'])
