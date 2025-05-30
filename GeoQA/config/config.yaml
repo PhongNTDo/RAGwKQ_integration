@@ -1,0 +1,34 @@
+model:
+  checkpoint: "colbert-ir/colbertv2.0"
+  query_maxlen: 32
+  doc_maxlen: 256
+  embedding_dim: 768
+
+data:
+  raw_input_dir: "data/database_wikipedia_test"
+  processed_passage_path: "data/processed/wiki_passages_test.jsonl"
+  passage_max_words: 1024
+  passage_overlap_words: 128
+
+indexing:
+  index_save_path: "data/index/wikipedia_colbert_test.faiss"
+  embedding_save_path: "data/index/doc_embedding_test.npy"
+  passage_map_save_path: "data/index/passage_map_test.json" # passage_id -> text
+  embedding_map_save_path: "data/index/embedding_to_passage_map_test.pkl" # embedding_idx -> passage_id
+
+  faiss_nlist: 1024
+  faiss_m: 16
+  faiss_nbits: 8
+
+  faiss_add_chunk_size_embeddings: 500
+
+  faiss_train_sample_size: 4000
+  batch_size: 8
+
+retrieval:
+  faiss_nprobe: 16
+  candidate_k: 1000
+  top_n: 10
+
+general:
+  device: "cuda"

@@ -1,0 +1,24 @@
+import yaml
+from src.data_processing import process_wikipedia_directory, create_passages_map
+from src.utils import logging, save_jsonl, save_json
+
+
+if __name__ == "__main__":
+    logging.info("Starting data processing...")
+    with open("config/config.yaml", "r") as f:
+        config = yaml.safe_load(f)
+    data_config = config["data"]
+
+    passages = process_wikipedia_directory(
+        input_dir=data_config['raw_input_dir'],
+        max_words=data_config['passage_max_words'],
+        overlap_words=data_config['passage_overlap_words']
+    )
+
+    if passages:
+        save_jsonl(passages, data_config['processed_passage_path'])
+        passage_map = create_passages_map(passages)
+        save_json(passage_map, config['indexing']['passage_map_save_path'])
+        logging.info("Data processing complete successfully.")
+    else:
+        logging.error("No passages were created")
