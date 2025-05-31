@@ -43,4 +43,26 @@ if __name__ == "__main__":
 
     training_embeddings_list = []
     for i in tqdm(range(0, len(sample_texts), index_config['batch_size'])):
-        
+        batch_texts = sample_texts[i:i+index_config['batch_size']]
+        batch_embeddings = encoder.encode_passages_batch(batch_texts)
+        for emb_array in batch_embeddings:
+            if emb_array.shape[0] > 0:
+                training_embeddings_list.append(emb_array)
+
+    if not training_embeddings_list:
+        logging.error("Could not generate any embeddings for training. Check encoder/data.")
+        exit()
+
+    training_vectors = np.concatenate(training_embeddings_list, axis=0)
+    indexer.train_index(training_vectors)
+
+    indexer.build_index(encoder=encoder,
+                       passages=passages,
+                       batch_size=index_config['batch_size'],
+                       embeddings_save_path=index_config['embedding_save_path'],
+                       map_save_path=index_config['embedding_map_save_path'],
+                       idx_config=index_config)
+    
+    indexer.save_index(index_config['index_save_path'])
+
+    logging.info("Index building process finished.")
