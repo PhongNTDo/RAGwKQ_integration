@@ -22,7 +22,7 @@ indexing:
 
   faiss_add_chunk_size_embeddings: 500
 
-  faiss_train_sample_size: 4000
+  faiss_train_sample_size: 10000
   batch_size: 8
 
 retrieval:

@@ -42,8 +42,9 @@ class FaissIndexer:
                 embs_list_for_count = encoder.encode_passages_batch(batch_texts)
                 
                 for passage_emb_array in embs_list_for_count:
-                    if passage_emb_array.shape[0] > 0:
-                        total_embeddings += passage_emb_array.shape[0]
+                    total_embeddings += len(passage_emb_array)
+                    #if passage_emb_array.shape[0] > 0:
+                    #    total_embeddings += passage_emb_array.shape[0]
 
             if total_embeddings == 0:
                 logging.error("No embeddings were generated. Cannot build index.")

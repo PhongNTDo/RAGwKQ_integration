@@ -13,7 +13,7 @@ from src.utils import load_jsonl, logging, load_numpy
 if __name__ == "__main__":
     logging.info("Starting index building process")
     with open("config/config.yaml") as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
     
     model_config = config["model"]
     data_config = config["data"]
@@ -53,7 +53,8 @@ if __name__ == "__main__":
         logging.error("Could not generate any embeddings for training. Check encoder/data.")
         exit()
 
-    training_vectors = np.concatenate(training_embeddings_list, axis=0)
+    # training_vectors = np.concatenate(training_embeddings_list, axis=0)
+    training_vectors = np.array(training_embeddings_list)
     indexer.train_index(training_vectors)
 
     indexer.build_index(encoder=encoder,
@@ -63,6 +64,6 @@ if __name__ == "__main__":
                        map_save_path=index_config['embedding_map_save_path'],
                        idx_config=index_config)
     
-    indexer.save_index(index_config['index_save_path'])
+    indexer.save(index_config['index_save_path'])
 
     logging.info("Index building process finished.")
