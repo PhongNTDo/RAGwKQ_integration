@@ -32,8 +32,7 @@ class FaissIndexer:
         if not self.is_trained:
             raise RuntimeError("Index must be trained before building")
         
-        if idx_config is None:
-            idx_config = {}
+        if idx_config is not None:
             logging.info("Starting pass 1/2: Counting total number of embeddings...")
             total_embeddings = 0
             for i in tqdm(range(0, len(passages), batch_size), desc="Counting embeddings"):
@@ -42,7 +41,7 @@ class FaissIndexer:
                 embs_list_for_count = encoder.encode_passages_batch(batch_texts)
                 
                 for passage_emb_array in embs_list_for_count:
-                    total_embeddings += len(passage_emb_array)
+                    total_embeddings += 1 # len(passage_emb_array)
                     #if passage_emb_array.shape[0] > 0:
                     #    total_embeddings += passage_emb_array.shape[0]
 
@@ -72,27 +71,25 @@ class FaissIndexer:
                 passage_embeddings_list = encoder.encode_passages_batch(batch_texts)
 
                 for passage_idx, passage_emb_array in enumerate(passage_embeddings_list):
-                    num_embeddings = passage_emb_array.shape[0]
-                    if num_embeddings > 0:
-                        passage_emb_array_f32 = passage_emb_array.astype('float32')
-                        all_doc_embeddings_mmap[current_mmap_offset:current_mmap_offset+num_embeddings] = passage_emb_array_f32
-                        current_mmap_offset += num_embeddings
+                    passage_emb_array_f32 = passage_emb_array.astype('float32')
+                    all_doc_embeddings_mmap[current_mmap_offset] = passage_emb_array_f32
+                    current_mmap_offset += 1
 
-                        embeddings_for_current_faiss_chunk.append(passage_emb_array_f32)
-                        passage_id = batch_ids[passage_idx]
-                        self.embedding_id_to_passage_id.extend([passage_id] * num_embeddings)
+                    embeddings_for_current_faiss_chunk.append(passage_emb_array_f32)
+                    passage_id = batch_ids[passage_idx]
+                    self.embedding_id_to_passage_id.append(passage_id)
 
-                        current_faiss_chunk_total_embeddings = sum([emb.shape[0] for emb in embeddings_for_current_faiss_chunk])
-                        if current_faiss_chunk_total_embeddings >= FAISS_ADD_CHUNK_SIZE:
-                            concatenated_faiss_chunk = np.concatenate(embeddings_for_current_faiss_chunk, axis=0)
-                            self.index.add(concatenated_faiss_chunk)
-                            embeddings_for_current_faiss_chunk = []
-                            logging.info(f"Add {concatenated_faiss_chunk.shape[0]} vectors to Faiss index")
+                    current_faiss_chunk_total_embeddings = len(embeddings_for_current_faiss_chunk)
+                    if current_faiss_chunk_total_embeddings >= FAISS_ADD_CHUNK_SIZE:
+                        faiss_chunk = np.array(embeddings_for_current_faiss_chunk)
+                        self.index.add(faiss_chunk)
+                        logging.info(f"Add {faiss_chunk.shape[0]} vectors to Faiss index")
+                        embeddings_for_current_faiss_chunk = []
 
             if embeddings_for_current_faiss_chunk:
-                concatenated_faiss_chunk = np.concatenate(embeddings_for_current_faiss_chunk, axis=0)
-                self.index.add(concatenated_faiss_chunk)
-                logging.info(f"Add final {concatenated_faiss_chunk.shape[0]} vectors to Faiss index")
+                faiss_chunk = np.array(embeddings_for_current_faiss_chunk)
+                self.index.add(faiss_chunk)
+                logging.info(f"Add final {faiss_chunk.shape[0]} vectors to Faiss index")
 
             all_doc_embeddings_mmap.flush()
             del all_doc_embeddings_mmap

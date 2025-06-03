@@ -4,6 +4,7 @@ from tqdm import tqdm
 import numpy as np
 # from src.utils import logging
 
+
 class Encoder:
     def __init__(self, checkpoint, query_maxlen, doc_maxlen, device='cuda'):
         # self.model = BGEM3FlagModel(checkpoint, 
@@ -13,6 +14,7 @@ class Encoder:
         #                             use_fp16=True)
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint)
         self.model = AutoModel.from_pretrained(checkpoint)
+        self.model.eval()
         self.model.to(device)
 
         self.doc_maxlen = doc_maxlen
@@ -29,7 +31,7 @@ class Encoder:
         else:
             max_length = self.doc_maxlen
             inputs = self.tokenizer(texts, return_tensors='pt', padding='max_length', truncation=True, max_length=max_length).to(self.device)
-        
+            print(inputs)
         with torch.no_grad():
             outputs = self.model(**inputs).last_hidden_state
             embeddings = torch.nn.functional.normalize(outputs[:, 0, :], p=2, dim=1)
