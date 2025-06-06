@@ -24,14 +24,13 @@ class Encoder:
 
     def _encode(self, texts, is_query):
         if is_query:
-            texts = [self.query_instruction_for_retrieval + text for text in texts]
+            # texts = [self.query_instruction_for_retrieval + text for text in texts]
             max_length = self.query_maxlen
             inputs = self.tokenizer(texts, return_tensors="pt", padding='max_length', truncation=True, max_length=max_length).to(self.device)
 
         else:
             max_length = self.doc_maxlen
             inputs = self.tokenizer(texts, return_tensors='pt', padding='max_length', truncation=True, max_length=max_length).to(self.device)
-            print(inputs)
         with torch.no_grad():
             outputs = self.model(**inputs).last_hidden_state
             embeddings = torch.nn.functional.normalize(outputs[:, 0, :], p=2, dim=1)
@@ -46,7 +45,7 @@ class Encoder:
         return embedding_list
 
     def encode_query(self, query_text):
-        query_embedding = self._encode(query_text, is_query=True)
+        query_embedding = self._encode([query_text], is_query=True)
         return query_embedding.cpu().numpy()
 
 

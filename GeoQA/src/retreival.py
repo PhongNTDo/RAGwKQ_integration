@@ -40,11 +40,12 @@ class GeoRetriever:
         logging.info(f"Faiss search in {faiss_search_time - query_encode_time:.2f} seconds")
 
         retrieved_passages_ids = set()
+        print(indices)
         for i in range(indices.shape[0]):
             for j in range(indices.shape[1]):
                 embedding_idx = indices[i][j]
                 if embedding_idx != -1:
-                    passage_id = self.passage_map[embedding_idx]
+                    passage_id = self.embedding_map[embedding_idx]
                     retrieved_passages_ids.add(passage_id)
                     candidate_passage_scores[passage_id] += distances[i][j]
 

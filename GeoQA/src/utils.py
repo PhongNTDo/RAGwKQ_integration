@@ -53,7 +53,7 @@ def save_numpy(array, filepath):
 
 def load_numpy(filepath):
     if os.path.exists(filepath):
-        array = np.load(filepath)
+        array = np.load(filepath, allow_pickle=True)
         logging.info(f"Loaded numpy array with shape {array.shape} from {filepath}")
         return array
     else:
@@ -77,3 +77,14 @@ def load_json(filepath):
     else:
         logging.warning(f"File {filepath} does not exist.")
         return None
+
+
+def load_memmap(filepath, shape):
+    if os.path.exists(filepath):
+        array = np.memmap(filepath, dtype='float32', mode='r', shape=shape)
+        logging.info(f"Loaded memmap with shape {array.shape} from {filepath}")
+        return array
+    else:
+        logging.warning(f"File {filepath} does not exist.")
+        return None
+    

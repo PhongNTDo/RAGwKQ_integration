@@ -2,7 +2,7 @@ model:
   checkpoint: "BAAI/bge-m3"
   query_maxlen: 128
   doc_maxlen: 2048
-  embedding_dim: 768
+  embedding_dim: 1024
 
 data:
   raw_input_dir: "data/database_wikipedia"
@@ -27,8 +27,8 @@ indexing:
 
 retrieval:
   faiss_nprobe: 16
-  candidate_k: 1000
-  top_n: 10
+  candidate_k: 3
+  top_n: 1
 
 general:
   device: "cuda"
